@@ -1,5 +1,7 @@
 import { Platform, PermissionsAndroid} from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
+import {Vibration} from 'react-native';
+import BackgroundService from 'react-native-background-actions';
 
 export const requestLocationPermission = async () => {
     try {
@@ -47,15 +49,52 @@ export const requestLocationPermission = async () => {
 
 export const getCurrentLocation = () => {
     Geolocation.getCurrentPosition(
-      (position) => {
+     async (position) => {
         const { latitude, longitude } = position.coords;
-        console.log(latitude,longitude)
-        return { latitude, longitude };
+        const dist = getDistanceFromLatLonInM(
+          latitude,
+          longitude,
+          destination.latitude,
+          destination.longitude
+        );
+        console.log(`Distance to destination: ${Math.round(dist)} meters`);
+        if (dist < 100) {
+            Vibration.vibrate(5000); // Vibrate for 5 seconds
+            console.log("Vibrating")
+            console.log('Stopping Background Service');
+            await BackgroundService.stop();
+            console.log('Stopped Background Service');
+        }else{
+            console.log("Not Reached Yet")
+        }
+
       },
       (error) => {
         console.log(error.message);
-        return null
       },
       { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
     );
   };
+
+function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number) {
+      const R = 6371000; // Radius of Earth in metres
+      const toRad = (value: number) => (value * Math.PI) / 180;
+
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) *
+          Math.cos(toRad(lat2)) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c; // distance in metres
+    }
+
+    const destination = {
+      latitude: 19.215784, // example: HOME
+      longitude: 72.817213,
+    };

@@ -1,24 +1,26 @@
-import React,{ useEffect} from 'react';
-import { View, Text, TouchableOpacity, Platform, StyleSheet, Button } from 'react-native';
+import React,{useState, useEffect} from 'react';
+import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
 import BackgroundService from 'react-native-background-actions';
 import { requestLocationPermission, getCurrentLocation } from '../utils/location';
-function HomeScreen() {
 
-  useEffect(() => {
-    if (Platform.OS === 'android') {
-      requestLocationPermission();
-    } else {
-        console.log("granted")
-    }
-  });
+function HomeScreen() {
+    const [isBGS, setisBGS] = useState<boolean>(BackgroundService.isRunning());
+
+    useEffect(() => {
+      if (Platform.OS === 'android') {
+        requestLocationPermission();
+      } else {
+          console.log("ungranted")
+      }
+    });
 
     const sleep = (time:any) => new Promise((resolve:any) => setTimeout(() => resolve(), time));
 
     const veryIntensiveTask = async (taskDataArguments:any) => {
-        // Example of an infinite loop task
         const { delay } = taskDataArguments;
-        await new Promise( async (resolve:any) => {
+        await new Promise( async () => {
             for (let i = 0; BackgroundService.isRunning(); i++) {
+                
                 console.log(i);
                 getCurrentLocation();
                 await sleep(delay);
@@ -42,6 +44,7 @@ function HomeScreen() {
     };
 
     const startBackgroundService = async () => {
+        setisBGS(true);
         console.log('starting Background Service');
         await BackgroundService.start(veryIntensiveTask, options);
         await BackgroundService.updateNotification({taskDesc: 'New ExampleTask description'}); // Only Android, iOS will ignore this call
@@ -53,18 +56,18 @@ function HomeScreen() {
         console.log('Stopping Background Service');
         await BackgroundService.stop();
         console.log('Stopped Background Service');
+        setisBGS(false);
     };
 
   return (
     <View style={styles.container}>
       <Text style={styles.text}>Hello World</Text>
-      <TouchableOpacity style={styles.button} onPress={startBackgroundService}>
+      {!isBGS && <TouchableOpacity style={styles.button} onPress={startBackgroundService}>
         <Text style={styles.buttonText}>Start Me</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={stopBackgroundService}>
+      </TouchableOpacity>}
+      {isBGS && <TouchableOpacity style={styles.button} onPress={stopBackgroundService}>
         <Text style={styles.buttonText}>Stop Me</Text>
-      </TouchableOpacity>
-      <Button title="Refresh Location" onPress={getCurrentLocation} />
+      </TouchableOpacity>}
     </View>
   );
 }
