@@ -1,10 +1,18 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React,{ useEffect} from 'react';
+import { View, Text, TouchableOpacity, Platform, StyleSheet, Button } from 'react-native';
 import BackgroundService from 'react-native-background-actions';
-
+import { requestLocationPermission, getCurrentLocation } from '../utils/location';
 function HomeScreen() {
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      requestLocationPermission();
+    } else {
+        console.log("granted")
+    }
+  });
+
     const sleep = (time:any) => new Promise((resolve:any) => setTimeout(() => resolve(), time));
-    // const isDarkMode = useColorScheme() === 'dark';
 
     const veryIntensiveTask = async (taskDataArguments:any) => {
         // Example of an infinite loop task
@@ -12,6 +20,7 @@ function HomeScreen() {
         await new Promise( async (resolve:any) => {
             for (let i = 0; BackgroundService.isRunning(); i++) {
                 console.log(i);
+                getCurrentLocation();
                 await sleep(delay);
             }
         });
@@ -28,7 +37,7 @@ function HomeScreen() {
         color: '#ff00ff',
         linkingURI: 'yourSchemeHere://chat/jane', // See Deep Linking for more info
         parameters: {
-            delay: 1000,
+            delay: 5000,
         },
     };
 
@@ -55,6 +64,7 @@ function HomeScreen() {
       <TouchableOpacity style={styles.button} onPress={stopBackgroundService}>
         <Text style={styles.buttonText}>Stop Me</Text>
       </TouchableOpacity>
+      <Button title="Refresh Location" onPress={getCurrentLocation} />
     </View>
   );
 }
