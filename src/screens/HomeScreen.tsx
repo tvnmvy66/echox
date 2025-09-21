@@ -15,7 +15,6 @@ import {
 import BackgroundService from 'react-native-background-actions';
 import {
   requestLocationPermission,
-  getDistanceFromLatLonInM,
 } from '../utils/location';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -95,8 +94,7 @@ function HomeScreen() {
   const sleep = (time: any) =>
     new Promise((resolve: any) => setTimeout(() => resolve(), time));
 
-  const veryIntensiveTask = async (taskDataArguments: any) => {
-    const { delay } = taskDataArguments;
+  const veryIntensiveTask = async () => {
     await new Promise(async () => {
       for (let i = 0; BackgroundService.isRunning(); i++) {
         console.log(i);
@@ -115,25 +113,32 @@ function HomeScreen() {
           Geolocation.getCurrentPosition(
             async (position: any) => {
               const { latitude, longitude } = position.coords;
+              console.log(`Current Position: ${latitude}, ${longitude}`);
 
               // 3. Calculate distance
-              const dist = getDistanceFromLatLonInM(
-                latitude,
-                longitude,
-                destination.latitude,
-                destination.longitude,
-              );
-              await BackgroundService.updateNotification({
-                taskDesc: `${destination.name} : ${Math.round(dist)} away...`,
-              });
+              const R = 6371000; 
+              const toRad = (value: number) => (value * Math.PI) / 180;
 
-              if (dist <= 1010) {
+              const dLat = toRad(destination.latitude - latitude);
+              const dLon = toRad(destination.longitude - longitude);
+
+              const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRad(latitude)) *
+                Math.cos(toRad(destination.latitude)) *
+                Math.sin(dLon / 2) *
+                Math.sin(dLon / 2);
+
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+              const dist =  R * c;
+              
+              if (dist <= 150) {
                 await BackgroundService.updateNotification({
                   taskDesc: `${i} : lat: ${latitude} lon: ${longitude} /n${Math.round(
                     dist,
-                  )} away... reached!`,
+                  )} metres away... reached!`,
                 });
-                Vibration.vibrate([100, 1000, 500, 2000, 500, 3000, 500, 2000, 500, 5000], false);
+                Vibration.vibrate(4000);
                 ringtone.play(success => {
                   if (success) {
                     console.log('successfully finished playing');
@@ -143,9 +148,12 @@ function HomeScreen() {
                 });
                 await BackgroundService.stop();
               } else {
-                console.log('Not Reached Yet');
-              }
-            },
+                  await BackgroundService.updateNotification({
+                    taskDesc: `${destination.name} : ${Math.round(dist)} metres away...`,
+                  });
+                  console.log('Not Reached Yet');
+                }
+              },
             (error: any) => {
               console.log(error.message);
             },
@@ -154,7 +162,7 @@ function HomeScreen() {
         } catch (err) {
           console.error('Error in getCurrentLocation:', err);
         }
-        await sleep(delay);
+        await sleep(15000);
       }
     });
   };
@@ -168,10 +176,7 @@ function HomeScreen() {
       type: 'mipmap',
     },
     color: '#fff',
-    linkingURI: 'com.echox://home',
-    parameters: {
-      delay: 15000,
-    },
+    linkingURI: 'com.echox://',
   };
 
   const filteredStations = stations.filter(

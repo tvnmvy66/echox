@@ -1,16 +1,6 @@
 import { Platform, PermissionsAndroid } from "react-native";
 import {promptForEnableLocationIfNeeded} from "react-native-android-location-enabler";
 import { request, PERMISSIONS, RESULTS } from "react-native-permissions";
-import Sound from 'react-native-sound';
-
-const ringtone = new Sound('ringtone.mp3', Sound.MAIN_BUNDLE, (error) => {
-  if (error) {
-    console.log('failed to load the sound', error);
-    return;
-  }
-  // If loaded successfully, you can log the duration or other details.
-  console.log('duration in seconds: ' + ringtone.getDuration() + 'number of channels: ' + ringtone.getNumberOfChannels());
-});
 
 export async function requestLocationPermission(): Promise<boolean> {
   try {
@@ -44,13 +34,30 @@ export async function requestLocationPermission(): Promise<boolean> {
           return false; // Background denied → exit silently
         }
       }
+      
+      // 🔹 NOTIFICATION FLOW (Android 13+ needs POST_NOTIFICATIONS)
+      if (Platform.Version >= 33) {
+        const notif = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+          {
+            title: "Notification Permission",
+            message: "We need permission to send you alerts & updates.",
+            buttonPositive: "OK",
+          }
+        );
+        if (notif !== PermissionsAndroid.RESULTS.GRANTED) {
+          return false; // Background denied → exit silently
+        }
+      } else {
+        return true; 
+      }
 
       // 3. Prompt user to turn ON GPS if it’s off
       try {
         await promptForEnableLocationIfNeeded({
           interval: 10000,
         });
-        return true; // ✅ GPS ON + permissions granted
+        return true; // GPS enabled
       } catch {
         return false; // GPS refused
       }
@@ -72,26 +79,4 @@ export async function requestLocationPermission(): Promise<boolean> {
   } catch {
     return false; // Fail-safe: don’t crash
   }
-}
-
-export function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371000; // Radius of Earth in metres
-  const toRad = (value: number) => (value * Math.PI) / 180;
-
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) *
-    Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) *
-    Math.sin(dLon / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // distance in metres
-}
-
-export const checkGPSisON = () => {
-
 }
