@@ -18,7 +18,6 @@ import {
 } from '../utils/location';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Sound from 'react-native-sound';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Navbar from '../components/Navbar';
 import { BlurView } from '@react-native-community/blur';
@@ -64,13 +63,6 @@ const stations: Station[] = [
   { name: 'Vasai Road', latitude: 19.3917, longitude: 72.8397, status: 'none', category: 'railway'  },
   { name: 'Dahisar', latitude: 19.3003, longitude: 72.8417, status: 'none', category: 'railway'  },
 ];
-
-const ringtone = new Sound('ringtone.mp3', Sound.MAIN_BUNDLE, error => {
-  if (error) {
-    console.log('failed to load the sound', error);
-    return;
-  }
-});
 
 function HomeScreen() {
   const [isBGS, setisBGS] = useState<boolean>(BackgroundService.isRunning());
@@ -134,24 +126,14 @@ function HomeScreen() {
               
               if (dist <= 150) {
                 await BackgroundService.updateNotification({
-                  taskDesc: `${i} : lat: ${latitude} lon: ${longitude} /n${Math.round(
-                    dist,
-                  )} metres away... reached!`,
+                  taskDesc: `${i} : ${destination.name} : ${Math.round(dist)} metres away...`,
                 });
-                Vibration.vibrate(4000);
-                ringtone.play(success => {
-                  if (success) {
-                    console.log('successfully finished playing');
-                  } else {
-                    console.log('playback failed due to audio decoding errors');
-                  }
-                });
+                Vibration.vibrate(5000);
                 await BackgroundService.stop();
               } else {
                   await BackgroundService.updateNotification({
-                    taskDesc: `${destination.name} : ${Math.round(dist)} metres away...`,
+                    taskDesc: `${i} : ${destination.name} : ${Math.round(dist)} metres away...`,
                   });
-                  console.log('Not Reached Yet');
                 }
               },
             (error: any) => {
