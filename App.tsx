@@ -1,19 +1,11 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
-
 import HomeScreen from "./src/screens/HomeScreen.tsx";
-
+import { ThemeProvider } from "./src/context/ThemeContext.tsx";
 export default function App() {
   return (
-    <View style={styles.container}>
+    <ThemeProvider>
       <HomeScreen />
-    </View>
+    </ThemeProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-});
